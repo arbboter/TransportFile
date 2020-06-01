@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TransFile", "TransFile\TransFile.vcxproj", "{440CF5F5-EB5F-4A37-9332-D3A8384CA30A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{440CF5F5-EB5F-4A37-9332-D3A8384CA30A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{440CF5F5-EB5F-4A37-9332-D3A8384CA30A}.Debug|Win32.Build.0 = Debug|Win32
+		{440CF5F5-EB5F-4A37-9332-D3A8384CA30A}.Release|Win32.ActiveCfg = Release|Win32
+		{440CF5F5-EB5F-4A37-9332-D3A8384CA30A}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
