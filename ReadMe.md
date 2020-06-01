@@ -20,6 +20,6 @@ Visual Studio 2010
 
 ## 运行截图示例
 
-![启动图](https://github.com/TransFile/arbboter//master/Image/start.jpg)
+![启动图](https://github.com/arbboter/TransportFile/blob/master/Image//start.jpg)
 
-![文件传输图](https://github.com/TransFile/arbboter//master/Image/file.jpg)
+![文件传输图](https://github.com/arbboter/TransportFile/blob/master/Image//file.jpg)
