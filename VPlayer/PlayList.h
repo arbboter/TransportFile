@@ -38,6 +38,7 @@ private:
 public:
     // 添加项
     int Add(const CPlayItem& oItem);
+    int Add(const CString& strPath);
     // 删除项
     void Remove(int nSeq);
     // 获取当前项

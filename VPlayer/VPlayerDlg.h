@@ -27,6 +27,7 @@ public:
 protected:
     HICON                   m_hIcon;
     CToolBar                m_vToolBar;
+    CMenu                   m_vMenu;
     CImageList              m_imgToolBar;
     CTextProgressCtrl       m_vTextProgress;
     CPlayList*              m_pPlayDlg;
@@ -49,6 +50,7 @@ protected:
     // 获取视频画面窗口
     void GetVRect(CRect& rtV);
     void OnVideoWndSizeChange();
+    void SetPlayerBackground();
 
 	// Generated message map functions
 	virtual BOOL OnInitDialog();
@@ -72,4 +74,6 @@ public:
     afx_msg void OnBtnStop();
     afx_msg void OnTimer(UINT_PTR nIDEvent);
     afx_msg void OnMove(int x, int y);
+    afx_msg void OnFileOpen();
+    afx_msg void OnWndPlaylist();
 };

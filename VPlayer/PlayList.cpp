@@ -23,6 +23,15 @@ int CPlayList::Add(const CPlayItem& oItem)
     return nSeq;
 }
 
+int CPlayList::Add(const CString& strPath)
+{
+    CPlayItem oItem;
+
+    oItem.m_strName = PathFindFileName(strPath);
+    oItem.m_strPath = strPath;
+    return Add(oItem);
+}
+
 void CPlayList::Remove(int nSeq)
 {
     if(nSeq<0 || nSeq>=m_arItems.GetCount())
