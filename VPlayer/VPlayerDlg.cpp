@@ -93,6 +93,9 @@ BEGIN_MESSAGE_MAP(CVPlayerDlg, CDialogEx)
     ON_COMMAND(ID_FILE_OPEN, &CVPlayerDlg::OnFileOpen)
     ON_COMMAND(ID_WND_PLAYLIST, &CVPlayerDlg::OnWndPlaylist)
     ON_MESSAGE(WM_SET_PLAY_PROGRESS, &CVPlayerDlg::OnSetPlayProgress)
+    ON_COMMAND(ID_PLAY_ORDER, &CVPlayerDlg::OnPlayOrder)
+    ON_COMMAND(ID_PLAY_CYCLE, &CVPlayerDlg::OnPlayCycle)
+    ON_COMMAND(ID_PLAY_RAND, &CVPlayerDlg::OnPlayRand)
 END_MESSAGE_MAP()
 
 
@@ -142,14 +145,14 @@ BOOL CVPlayerDlg::InitDirectShow()
     // Init COM
     HRESULT hr = CoInitialize(NULL);
     if (FAILED(hr)){
-        AfxMessageBox(L"Error - Can't init COM.");
+        AfxMessageBox(L"初始化DirectShow的COM环境失败");
         return FALSE;
     }
 
     // Create FilterGraph
     hr=CoCreateInstance(CLSID_FilterGraph, NULL,CLSCTX_INPROC_SERVER,IID_IGraphBuilder, (void **)&m_pGraph);
     if (FAILED(hr)){
-        AfxMessageBox(L"Error - Can't create Filter Graph.");
+        AfxMessageBox(L"创建DirectShow的实例对象失败");
         return FALSE;
     }
     //  Query Interface
@@ -162,7 +165,7 @@ BOOL CVPlayerDlg::InitDirectShow()
     hr |= m_pGraph->QueryInterface(IID_IVideoWindow, (void **)&m_pWindow);
     hr |= m_pGraph->QueryInterface(IID_IMediaSeeking, (void **)&m_pSeeking);
     if (FAILED(hr)){
-        AfxMessageBox(L"Error - Can't Query Interface.");
+        AfxMessageBox(L"获取DirectShow的接口对象出错");
         return FALSE;
     }
 
@@ -252,7 +255,7 @@ BOOL CVPlayerDlg::OnInitDialog()
     m_pPlayDlg->m_pMainView = this;
 
     // 循环播放
-    m_pPlayDlg->m_nPlayMode = PLAY_MODE_CYCLE;
+    OnPlayCycle();
 
     // 大小自适应
     PostMessage(WM_SIZE, 0, 0);
@@ -541,10 +544,23 @@ void CVPlayerDlg::SetPlayerBackground()
 void CVPlayerDlg::OnBtnPlay()
 {
     // 检查播放列表
+    if(m_pPlayDlg->ItemCount() <= 0)
+    {
+        OnFileOpen();
+        return;
+    }
+
+    // 默认播放第一个
+    if(m_pPlayDlg->GetCurSel() < 0)
+    {
+        m_pPlayDlg->SetCurSel(0);
+    }
+
+    // 获取播放项
     CPlayItem oItem;
     if(m_pPlayDlg->GetCurSel(oItem) < 0)
     {
-        AfxMessageBox(L"未选中播放项，请重试");
+        AfxMessageBox(L"未选择播放项", MB_OK|MB_ICONWARNING);
         return;
     }
 
@@ -560,8 +576,9 @@ void CVPlayerDlg::OnBtnPlay()
     // 此处在如果打开文件失败，很可能是因为解码器不支持，需安装：终极解码
     // 如果在MFC调试时，此处导致程序异常，可能是因为MFC不支持该调试，正常运行即可
     HRESULT hr = m_pGraph->RenderFile(oItem.m_strPath, NULL);
-    if (FAILED(hr)){
-        AfxMessageBox(L"Error - Can't Render File.");
+    if (FAILED(hr))
+    {
+        AfxMessageBox(L"解码播放文件[" +  oItem.m_strPath + L"]失败，请确认文件路径或系统解码器已支持");
         return;
     }
 
@@ -615,6 +632,7 @@ void CVPlayerDlg::OnBtnStop()
         }
         m_pGraph->Release();
     }
+    // 触发背景重绘
     PostMessage(WM_SIZE);
 }
 
@@ -645,6 +663,7 @@ void CVPlayerDlg::OnDropFiles(HDROP hDropInfo)
         OnBtnPlay();
     }
 }
+// 秒数 => 时:分:秒
 CString CVPlayerDlg::SecondsToTime(int nSecond)
 {
     CString strTime;
@@ -658,6 +677,7 @@ void CVPlayerDlg::OnTimer(UINT_PTR nIDEvent)
 {
     if (nIDEvent == 1)
     {
+        // 设置播放进度信息
         CString strCurTime, strDura;
         long long curtime;
         long long duration;
@@ -672,6 +692,12 @@ void CVPlayerDlg::OnTimer(UINT_PTR nIDEvent)
         m_pSeeking->GetDuration(&duration);
         progress = int(curtime*100/duration);
         m_vTextProgress.SetCurText(strCurTime, progress);
+
+        // 播放结束自动播放下一个
+        if(curtime >= duration)
+        {
+            OnBtnNext();
+        }
     }
     CDialogEx::OnTimer(nIDEvent);
 }
@@ -762,7 +788,7 @@ void CVPlayerDlg::OnFileOpen()
 void CVPlayerDlg::OnWndPlaylist()
 {
     // 窗口菜单
-    CMenu* pMenu = GetMenu()->GetSubMenu(1);
+    CMenu* pMenu = GetMenu()->GetSubMenu(2);
     if(pMenu == NULL)
     {
         return;
@@ -811,4 +837,46 @@ afx_msg LRESULT CVPlayerDlg::OnSetPlayProgress(WPARAM wParam, LPARAM lParam)
     CString strCurTime = SecondsToTime(nCurTime);
     m_vTextProgress.SetCurText(strCurTime, nPos);
     return 0;
+}
+
+
+void CVPlayerDlg::OnPlayOrder()
+{
+    // 窗口菜单
+    CMenu* pMenu = GetMenu()->GetSubMenu(1)->GetSubMenu(0);
+    if(pMenu == NULL)
+    {
+        return;
+    }
+    // 顺序播放
+    pMenu->CheckMenuRadioItem(ID_PLAY_ORDER, ID_PLAY_RAND, ID_PLAY_ORDER, MF_BYCOMMAND | MF_CHECKED);
+    m_pPlayDlg->m_nPlayMode = PLAY_MODE_ORDER;
+}
+
+
+void CVPlayerDlg::OnPlayCycle()
+{
+    // 窗口菜单
+    CMenu* pMenu = GetMenu()->GetSubMenu(1)->GetSubMenu(0);
+    if(pMenu == NULL)
+    {
+        return;
+    }
+    // 循环播放
+    pMenu->CheckMenuRadioItem(ID_PLAY_ORDER, ID_PLAY_RAND, ID_PLAY_CYCLE, MF_BYCOMMAND | MF_CHECKED);
+    m_pPlayDlg->m_nPlayMode = PLAY_MODE_CYCLE;
+}
+
+
+void CVPlayerDlg::OnPlayRand()
+{
+    // 窗口菜单
+    CMenu* pMenu = GetMenu()->GetSubMenu(1)->GetSubMenu(0);
+    if(pMenu == NULL)
+    {
+        return;
+    }
+    // 随机播放
+    pMenu->CheckMenuRadioItem(ID_PLAY_ORDER, ID_PLAY_RAND, ID_PLAY_RAND, MF_BYCOMMAND | MF_CHECKED);
+    m_pPlayDlg->m_nPlayMode = PLAY_MODE_RAND;
 }

@@ -52,6 +52,8 @@ public:
     int Next();
     // 上一个
     int Last();
+    // 总数
+    int ItemCount();
 
 
 public:

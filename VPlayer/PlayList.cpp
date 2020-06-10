@@ -7,10 +7,18 @@
 #include "afxdialogex.h"
 #include "VPlayerDlg.h"
 
+// 生成随机数[nMin, nMax)
 int RandInt(int nMin, int nMax)
 {
-    double fMax = nMax*1.0f;
-    return (int)(rand()*(nMax-nMin)/fMax+nMin);
+    // 初始化随机数种子，单次
+    static bool bInitRand = false;
+    if(!bInitRand)
+    {
+        srand(GetTickCount());
+        bInitRand = true;
+    }
+    if(nMax <= nMin) return nMin;
+    return rand()%(nMax-nMin) + nMin;
 }
 
 int CPlayList::Add(const CPlayItem& oItem)
@@ -131,6 +139,11 @@ int CPlayList::Last()
     }
     SetCurSel(m_nCurSel);
     return m_nCurSel;
+}
+
+int CPlayList::ItemCount()
+{
+    return m_arItems.GetCount();
 }
 
 // CPlayList dialog

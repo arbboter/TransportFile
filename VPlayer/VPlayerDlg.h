@@ -82,4 +82,7 @@ public:
     afx_msg void OnWndPlaylist();
     afx_msg void OnHelpAbout();
     afx_msg LRESULT OnSetPlayProgress(WPARAM wParam, LPARAM lParam);
+    afx_msg void OnPlayOrder();
+    afx_msg void OnPlayCycle();
+    afx_msg void OnPlayRand();
 };
