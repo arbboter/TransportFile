@@ -20,6 +20,10 @@ int CPlayList::Add(const CPlayItem& oItem)
     CString strInfo;
     strInfo.Format(L"%03d ", nSeq);
     m_vList.AddString(strInfo + oItem.m_strName);
+    if(m_nCurSel < 0)
+    {
+        m_nCurSel = nSeq - 1;
+    }
     return nSeq;
 }
 
@@ -40,6 +44,10 @@ void CPlayList::Remove(int nSeq)
     }
     m_arItems.RemoveAt(nSeq);
     m_vList.DeleteString(nSeq);
+    if(nSeq==m_nCurSel || m_arItems.IsEmpty())
+    {
+        Next();
+    }
 }
 
 void CPlayList::SetCurSel(int nSeq)
@@ -51,6 +59,18 @@ void CPlayList::SetCurSel(int nSeq)
     m_nCurSel = nSeq;
     m_vList.SetCurSel(nSeq);
 }
+
+int CPlayList::GetCurSel(CPlayItem& oItem)
+{
+    int nCurSel = GetCurSel();
+    if(nCurSel < 0)
+    {
+        return nCurSel;
+    }
+    oItem = m_arItems.GetAt(nCurSel);
+    return nCurSel;
+}
+
 int CPlayList::GetCurSel()
 {
     return m_nCurSel;
@@ -70,7 +90,7 @@ int CPlayList::Next()
         }
         break;
     case PLAY_MODE_RAND:
-        m_nCurSel = RandInt(0, m_arItems.GetCount());
+        m_nCurSel = (m_arItems.IsEmpty() ? -1 : RandInt(0, m_arItems.GetCount()));
         break;
     case PLAY_MODE_CYCLE:
         // 播放尾部后重新开始
@@ -98,7 +118,7 @@ int CPlayList::Last()
         }
         break;
     case PLAY_MODE_RAND:
-        m_nCurSel = RandInt(0, m_arItems.GetCount());
+        m_nCurSel = (m_arItems.IsEmpty() ? -1 : RandInt(0, m_arItems.GetCount()));
         break;
     case PLAY_MODE_CYCLE:
         // 播放尾部后重新开始
@@ -110,16 +130,6 @@ int CPlayList::Last()
         break;
     }
     SetCurSel(m_nCurSel);
-    return m_nCurSel;
-}
-
-int CPlayList::GetCurSel(CPlayItem& oItem)
-{
-    if(m_nCurSel<0 || m_arItems.IsEmpty())
-    {
-        return -1;
-    }
-    oItem = m_arItems.GetAt(m_nCurSel);
     return m_nCurSel;
 }
 
@@ -170,6 +180,8 @@ void CPlayList::OnBnClickedCancel()
 
 void CPlayList::OnClose()
 {
+    // 菜单选中关闭
+    SendMessage(WM_COMMAND, MAKEWPARAM(ID_WND_PLAYLIST,BN_CLICKED), NULL);
     EndDialog(IDCLOSE);
 }
 

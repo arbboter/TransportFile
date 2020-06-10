@@ -38,7 +38,9 @@
 #include <afxcontrolbars.h>     // MFC support for ribbons and control bars
 
 
-
+// 自定义消息
+// 播放进度标动消息
+#define WM_SET_PLAY_PROGRESS (WM_USER + 1)
 
 
 

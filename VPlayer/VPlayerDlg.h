@@ -41,7 +41,11 @@ private:
     IVideoWindow*           m_pWindow;
     IMediaSeeking*          m_pSeeking;
 
-protected:
+private:
+    // 其他
+    CString SecondsToTime(int nSecond);
+
+    // 界面初始化
     void InitToolBar();
     BOOL InitDirectShow();
     void UnitDirectShow();
@@ -76,4 +80,6 @@ public:
     afx_msg void OnMove(int x, int y);
     afx_msg void OnFileOpen();
     afx_msg void OnWndPlaylist();
+    afx_msg void OnHelpAbout();
+    afx_msg LRESULT OnSetPlayProgress(WPARAM wParam, LPARAM lParam);
 };

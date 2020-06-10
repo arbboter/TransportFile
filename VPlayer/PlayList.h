@@ -43,15 +43,16 @@ public:
     void Remove(int nSeq);
     // 获取当前项
     int GetCurSel();
-    
+    // 获取当前项
+    int GetCurSel(CPlayItem& oItem);
+
     // 指定播放项
     void SetCurSel(int nSeq);
     // 下一个
     int Next();
     // 上一个
     int Last();
-    // 获取当前项
-    int GetCurSel(CPlayItem& oItem);
+
 
 public:
 	CPlayList(CWnd* pParent = NULL);   // standard constructor

@@ -79,6 +79,8 @@ BEGIN_MESSAGE_MAP(CVPlayerDlg, CDialogEx)
     ON_BN_CLICKED(IDCANCEL, &CVPlayerDlg::OnBnClickedCancel)
     ON_WM_CLOSE()
     ON_WM_SIZE()
+    ON_WM_TIMER()
+    ON_WM_MOVE()
     ON_WM_DROPFILES()
     ON_NOTIFY_EX(TTN_NEEDTEXT, 0, OnToolNotify)
     ON_COMMAND(ID_BTN_FULLSCREEN, &CVPlayerDlg::OnBtnFullscreen)
@@ -87,10 +89,10 @@ BEGIN_MESSAGE_MAP(CVPlayerDlg, CDialogEx)
     ON_COMMAND(ID_BTN_PAUSE, &CVPlayerDlg::OnBtnPause)
     ON_COMMAND(ID_BTN_PLAY, &CVPlayerDlg::OnBtnPlay)
     ON_COMMAND(ID_BTN_STOP, &CVPlayerDlg::OnBtnStop)
-    ON_WM_TIMER()
-    ON_WM_MOVE()
+    ON_COMMAND(ID_HELP_ABOUT, &CVPlayerDlg::OnHelpAbout)
     ON_COMMAND(ID_FILE_OPEN, &CVPlayerDlg::OnFileOpen)
     ON_COMMAND(ID_WND_PLAYLIST, &CVPlayerDlg::OnWndPlaylist)
+    ON_MESSAGE(WM_SET_PLAY_PROGRESS, &CVPlayerDlg::OnSetPlayProgress)
 END_MESSAGE_MAP()
 
 
@@ -242,12 +244,12 @@ BOOL CVPlayerDlg::OnInitDialog()
     // 初始化进度挑
     m_vTextProgress.SetRange(0, 100);
     m_vTextProgress.SetText(L"00:00:00", L"23:59:59", 0);
+    m_vTextProgress.ShowWindow(SW_HIDE);
 
-    // 显示播放列表窗口
+    // 播放列表窗口初始化
     m_pPlayDlg->Create(IDD_DLG_PLAYLIST); 
-    m_pPlayDlg->ShowWindow(SW_SHOWNORMAL);
+    m_pPlayDlg->ShowWindow(SW_HIDE);
     m_pPlayDlg->m_pMainView = this;
-    OnWndPlaylist();
 
     // 循环播放
     m_pPlayDlg->m_nPlayMode = PLAY_MODE_CYCLE;
@@ -407,14 +409,28 @@ BOOL CVPlayerDlg::OnToolNotify(UINT id,NMHDR* pNMHDR,LRESULT* pResult)
 
 void CVPlayerDlg::GetVRect(CRect& rtV)
 {
+    // 主窗口
     CRect rtMain, rtControl;
     GetClientRect(&rtMain);
-    m_vTextProgress.GetClientRect(&rtControl);
-
     rtV = rtMain;
-    rtV.bottom = rtV.top + rtMain.Height() - rtControl.Height();
-    m_vToolBar.GetClientRect(&rtControl);
-    rtV.bottom -= rtControl.Height();
+
+    // 预留控件空间
+    if(m_vTextProgress.IsWindowVisible())
+    {
+        m_vTextProgress.GetClientRect(&rtControl);
+        rtV.bottom -= rtControl.Height();
+    }
+    if(m_vToolBar.IsWindowVisible())
+    {
+        m_vToolBar.GetClientRect(&rtControl);
+        rtV.bottom -= rtControl.Height();
+    }
+    // 空隙
+    rtV.bottom -= 5;
+
+    // rtV.bottom = rtV.top + rtMain.Height() - rtControl.Height();
+    //m_vToolBar.GetClientRect(&rtControl);
+    //rtV.bottom -= rtControl.Height();
 }
 
 void CVPlayerDlg::OnBtnFullscreen()
@@ -496,7 +512,6 @@ void CVPlayerDlg::SetPlayerBackground()
     CRect rtPlayer;
     GetVRect(rtPlayer);
 
-
     // 重置播放器背景
     InvalidateRect(rtMain);
     UpdateWindow();
@@ -526,7 +541,6 @@ void CVPlayerDlg::SetPlayerBackground()
 void CVPlayerDlg::OnBtnPlay()
 {
     // 检查播放列表
-    // m_arPlayList.Add(L"D:\\temp\\test.avi");
     CPlayItem oItem;
     if(m_pPlayDlg->GetCurSel(oItem) < 0)
     {
@@ -552,6 +566,7 @@ void CVPlayerDlg::OnBtnPlay()
     }
 
     // 设置播放窗口
+    m_vTextProgress.ShowWindow(SW_SHOW);
     OnVideoWndSizeChange();
 
     // 设置参数
@@ -566,10 +581,7 @@ void CVPlayerDlg::OnBtnPlay()
     m_pSeeking->GetDuration(&duration);
     if(duration != 0){
         int tns = int(duration/10000000);
-        int thh  = tns / 3600;
-        int tmm  = (tns % 3600) / 60;
-        int tss  = (tns % 60);
-        strDura.Format(_T("%02d:%02d:%02d"), thh, tmm, tss);
+        strDura = SecondsToTime(tns);
     }
     m_vTextProgress.SetText(L"00:00:00", strDura, 0);
 }
@@ -578,6 +590,7 @@ void CVPlayerDlg::OnBtnPlay()
 void CVPlayerDlg::OnBtnStop()
 {
     // 停止
+    m_vTextProgress.ShowWindow(SW_HIDE);
     KillTimer(1);
     long long position = 0;
     HRESULT hr;
@@ -602,6 +615,7 @@ void CVPlayerDlg::OnBtnStop()
         }
         m_pGraph->Release();
     }
+    PostMessage(WM_SIZE);
 }
 
 void CVPlayerDlg::OnDropFiles(HDROP hDropInfo)
@@ -623,9 +637,23 @@ void CVPlayerDlg::OnDropFiles(HDROP hDropInfo)
     {
         m_pPlayDlg->SetCurSel(0);
     }
-    OnBtnPlay();
+    // 如果播放停止，则开始播放
+    OAFilterState nState = State_Stopped;
+    m_pControl->GetState(1000, &nState);
+    if(nState == State_Stopped)
+    {
+        OnBtnPlay();
+    }
 }
-
+CString CVPlayerDlg::SecondsToTime(int nSecond)
+{
+    CString strTime;
+    int thh = nSecond / 3600;
+    int tmm = (nSecond % 3600) / 60;
+    int tss = (nSecond % 60);
+    strTime.Format(_T("%02d:%02d:%02d"), thh, tmm, tss);
+    return strTime;
+}
 void CVPlayerDlg::OnTimer(UINT_PTR nIDEvent)
 {
     if (nIDEvent == 1)
@@ -633,16 +661,13 @@ void CVPlayerDlg::OnTimer(UINT_PTR nIDEvent)
         CString strCurTime, strDura;
         long long curtime;
         long long duration;
-        int  tns, thh, tmm, tss;
+        int  tns;
         int progress;
         // 当前播放时间：ns
         m_pSeeking->GetCurrentPosition(&curtime);
-        // change to second
+        // 时间转换
         tns = int(curtime/10000000);
-        thh  = tns / 3600;
-        tmm  = (tns % 3600) / 60;
-        tss  = (tns % 60);
-        strCurTime.Format(_T("%02d:%02d:%02d"), thh, tmm, tss);
+        strCurTime = SecondsToTime(tns);
         // 总播放时间
         m_pSeeking->GetDuration(&duration);
         progress = int(curtime*100/duration);
@@ -723,7 +748,14 @@ void CVPlayerDlg::OnFileOpen()
     {
         m_pPlayDlg->SetCurSel(0);
     }
-    OnBtnPlay();
+
+    // 如果播放停止，则开始播放
+    OAFilterState nState = State_Stopped;
+    m_pControl->GetState(1000, &nState);
+    if(nState == State_Stopped)
+    {
+        OnBtnPlay();
+    }
 }
 
 
@@ -746,5 +778,37 @@ void CVPlayerDlg::OnWndPlaylist()
     {
         pMenu->CheckMenuItem(ID_WND_PLAYLIST, MF_BYCOMMAND | MF_CHECKED);
         m_pPlayDlg->ShowWindow(SW_SHOW);
+        SendMessage(WM_MOVE);
     }
+}
+
+
+void CVPlayerDlg::OnHelpAbout()
+{
+    CAboutDlg oDlg;
+    oDlg.DoModal();
+}
+
+afx_msg LRESULT CVPlayerDlg::OnSetPlayProgress(WPARAM wParam, LPARAM lParam)
+{
+    // 设置播放进度
+    int nPos = (int)wParam;
+    double pos_bar=0.0;
+    LONGLONG duration=0;
+    LONGLONG pos_time=0;
+    // 计算进度时间
+    pos_bar = (double)nPos/100.0;
+    m_pSeeking->GetDuration(&duration);
+    pos_time = (LONGLONG)(pos_bar*duration);
+    // 设置播放进度
+    LONGLONG position = (LONGLONG)(pos_time);
+    m_pSeeking->SetPositions(&position,
+        AM_SEEKING_AbsolutePositioning | AM_SEEKING_SeekToKeyFrame, 
+        0,
+        AM_SEEKING_NoPositioning);
+    // 设置当前播放时间
+    int nCurTime = int(pos_time/10000000);
+    CString strCurTime = SecondsToTime(nCurTime);
+    m_vTextProgress.SetCurText(strCurTime, nPos);
+    return 0;
 }

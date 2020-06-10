@@ -92,6 +92,7 @@ CTextProgressCtrl::~CTextProgressCtrl()
 
 BEGIN_MESSAGE_MAP(CTextProgressCtrl, CWnd)
     ON_WM_PAINT()
+    ON_WM_LBUTTONUP()
 END_MESSAGE_MAP()
 
 
@@ -164,4 +165,23 @@ void CTextProgressCtrl::OnPaint()
     dc.SetTextColor(m_freeTextColor);
     dc.DrawText(strPercent, ClientRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 #endif
+}
+
+void CTextProgressCtrl::OnLButtonUp(UINT nFlags, CPoint point)
+{
+    if(IsWindow(GetSafeHwnd()) && IsWindowVisible())
+    {
+        CRect rtWnd;
+        GetClientRect(&rtWnd);
+
+        //WPARAM wPara = MAKEWPARAM(rtWnd.left, rtWnd.right);
+        //LPARAM lPara = MAKELPARAM(point.x, rtWnd.Width());
+        //WPARAM wPara = rtWnd.Width();
+        //LPARAM lPara = point.x - rtWnd.left;
+        // ¼ÆËã½ø¶È
+        WPARAM wPara = WPARAM((point.x - rtWnd.left)*100.0/rtWnd.Width());
+        ::PostMessage(GetParent()->GetSafeHwnd(), WM_SET_PLAY_PROGRESS, wPara, 0);
+    }
+
+    CProgressCtrl::OnLButtonUp(nFlags, point);
 }
